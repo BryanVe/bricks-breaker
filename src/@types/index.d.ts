@@ -1,0 +1,3 @@
+interface Something {
+  aea: string
+}

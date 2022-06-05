@@ -4,6 +4,8 @@
   "private": true,
   "dependencies": {
     "@tensorflow-models/body-pix": "^2.2.0",
+    "@tensorflow/tfjs": "^3.18.0",
+    "@tensorflow/tfjs-backend-webgl": "^3.18.0",
     "@testing-library/jest-dom": "^5.14.1",
     "@testing-library/react": "^13.0.0",
     "@testing-library/user-event": "^13.2.1",
@@ -41,5 +43,8 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "@types/styled-components": "^5.1.25"
   }
 }
