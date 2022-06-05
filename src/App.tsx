@@ -1,75 +1,15 @@
 import { useRef, useEffect, useCallback } from 'react'
-import styled from 'styled-components'
-import * as bodyPix from '@tensorflow-models/body-pix'
+import { load } from '@tensorflow-models/body-pix'
 import '@tensorflow/tfjs-backend-webgl'
 
+import { Container, Content } from 'style'
 import { Video, Filter } from 'components'
 import { useNodeDimensions } from 'hooks'
+import { loopVideo } from 'utils'
 
-const padding = 32
 const FPS = 1000 / 60
-const aspectRatio = 16 / 9
-
-const Container = styled.div`
-  position: relative;
-  background-color: #2a2a2a;
-  width: 100vw;
-  height: 100vh;
-  display: grid;
-  grid-template-columns: 1fr;
-  grid-template-rows: auto 1fr auto;
-`
-
-const Content = styled.div`
-  align-self: center;
-  justify-self: center;
-  width: calc(100% - ${padding * 2}px);
-  height: 100%;
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  grid-template-rows: auto;
-  align-content: center;
-  gap: ${padding}px;
-
-  @media (max-width: 800px) {
-    grid-template-columns: 1fr;
-    /* grid-template-rows: repeat(2, auto); */
-  }
-`
-
-const segmentVideo = async (
-  canvas: HTMLCanvasElement,
-  video: HTMLVideoElement,
-  net: bodyPix.BodyPix
-) => {
-  const backgroundBlurAmount = 10
-  const edgeBlurAmount = 12
-  const flipHorizontal = false
-
-  const segmentation = await net.segmentPerson(video, {
-    segmentationThreshold: 0.5,
-  })
-
-  bodyPix.drawBokehEffect(
-    canvas,
-    video,
-    segmentation,
-    backgroundBlurAmount,
-    edgeBlurAmount,
-    flipHorizontal
-  )
-}
-
-const loopVideo = async (
-  net: bodyPix.BodyPix,
-  video: HTMLVideoElement,
-  canvas: HTMLCanvasElement
-) => {
-  if (video.paused || video.ended) return
-
-  segmentVideo(canvas, video, net)
-  setTimeout(() => loopVideo(net, video, canvas), FPS)
-}
+const PADDING = 32
+const ASPECT_RATIO = 16 / 9
 
 const App = () => {
   const { ref: videoRef, dimensions: videoDimensions } =
@@ -77,41 +17,47 @@ const App = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
 
   const captureVideo = useCallback(async () => {
-    if (!navigator.mediaDevices.getUserMedia)
-      throw new Error('Media device could not be loaded')
-
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: {
-        aspectRatio: {
-          exact: aspectRatio,
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          aspectRatio: {
+            exact: ASPECT_RATIO,
+          },
         },
-      },
-    })
+      })
 
-    if (!videoRef.current) throw new Error('Video could not be captured')
+      if (!videoRef.current) throw new Error('Video could not be captured')
 
-    const { width, height } = videoRef.current.getBoundingClientRect()
-    videoRef.current.srcObject = stream
-    videoRef.current.width = width
-    videoRef.current.height = height
+      const { width, height } = videoRef.current.getBoundingClientRect()
+      videoRef.current.srcObject = stream
+      videoRef.current.width = width
+      videoRef.current.height = height
+    } catch (error) {
+      console.log(error)
+    }
   }, [videoRef])
 
   const runBodyPix = useCallback(async () => {
     try {
       if (!videoRef.current) throw new Error('Video could not be captured')
 
-      const net = await bodyPix.load()
+      const net = await load()
 
       videoRef.current.addEventListener(
         'play',
         function () {
-          if (!canvasRef.current) return
+          if (!canvasRef.current || !videoRef.current) return
 
           const { width, height } = this.getBoundingClientRect()
           canvasRef.current.width = width
           canvasRef.current.height = height
 
-          loopVideo(net, this, canvasRef.current)
+          loopVideo({
+            net,
+            video: videoRef.current,
+            canvas: canvasRef.current,
+            fps: FPS,
+          })
         },
         false
       )
@@ -131,7 +77,7 @@ const App = () => {
   return (
     <Container>
       <div style={{ height: 70 }}>adasd</div>
-      <Content>
+      <Content padding={PADDING}>
         <Video ref={videoRef} />
         <Filter
           ref={canvasRef}

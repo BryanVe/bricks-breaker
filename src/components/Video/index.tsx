@@ -1,18 +1,8 @@
 import { forwardRef } from 'react'
+import { StyledVideo } from './style'
 
-interface VideoProps {}
-
-const Video = forwardRef<HTMLVideoElement, VideoProps>((props, ref) => (
-  <video
-    ref={ref}
-    autoPlay
-    style={{
-      width: '100%',
-      height: '100%',
-      aspectRatio: '16 /  9',
-      borderRadius: 10,
-    }}
-  />
+const Video = forwardRef<HTMLVideoElement>((_props, ref) => (
+  <StyledVideo ref={ref} autoPlay />
 ))
 
 export default Video

@@ -1,3 +1,0 @@
-interface Something {
-  aea: string
-}

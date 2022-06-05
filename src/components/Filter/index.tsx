@@ -1,4 +1,5 @@
 import { forwardRef } from 'react'
+import { StyledCanvas } from './style'
 
 interface FilterProps {
   width: number
@@ -8,19 +9,7 @@ interface FilterProps {
 const Filter = forwardRef<HTMLCanvasElement, FilterProps>((props, ref) => {
   const { width, height } = props
 
-  return (
-    <canvas
-      ref={ref}
-      width={width}
-      height={height}
-      style={{
-        width: '100%',
-        aspectRatio: '16 /  9',
-        borderRadius: 10,
-        backgroundColor: '#000',
-      }}
-    />
-  )
+  return <StyledCanvas ref={ref} width={width} height={height} />
 })
 
 export default Filter
