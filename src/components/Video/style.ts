@@ -6,4 +6,5 @@ export const StyledVideo = styled.video`
   border-radius: 10px;
   background-color: #000;
   aspect-ratio: 16 / 9;
+  object-fit: unset;
 `

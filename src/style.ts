@@ -2,7 +2,8 @@ import styled from 'styled-components'
 
 export const Container = styled.div`
   position: relative;
-  background-color: #2a2a2a;
+  background-color: #1f1f1f;
+  /* background-color: #f5f5f5; */
   width: 100vw;
   height: 100vh;
   display: grid;

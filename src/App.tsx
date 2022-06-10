@@ -1,13 +1,13 @@
-import { useRef, useEffect, useCallback } from 'react'
+import { useRef, useEffect, useCallback, useState } from 'react'
 import { load } from '@tensorflow-models/body-pix'
 import '@tensorflow/tfjs-backend-webgl'
 
 import { Container, Content } from 'style'
-import { Video, Filter } from 'components'
+import { Video, Filter, Images } from 'components'
 import { useNodeDimensions } from 'hooks'
-import { loopVideo } from 'utils'
+import { segmentVideo, images } from 'utils'
 
-const FPS = 1000 / 60
+const FPS = 1000 / 30
 const PADDING = 32
 const ASPECT_RATIO = 16 / 9
 
@@ -15,6 +15,28 @@ const App = () => {
   const { ref: videoRef, dimensions: videoDimensions } =
     useNodeDimensions<HTMLVideoElement>()
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
+  const selectedImageKeyRef = useRef<string>()
+  const [selectedImageKey, setSelectedImageKey] = useState<string>()
+
+  const selectImageKey = (key: string) => {
+    selectedImageKeyRef.current =
+      selectedImageKeyRef.current !== key ? key : undefined
+    setSelectedImageKey(selectedImageKey !== key ? key : undefined)
+  }
+
+  const loopVideo = useCallback<LoopVideo>(async (args) => {
+    const { video, fps } = args
+
+    if (video.paused || video.ended) return
+
+    const segmentVideoArgs = {
+      ...args,
+      selectedImageKey: selectedImageKeyRef.current,
+    }
+
+    segmentVideo(segmentVideoArgs)
+    setTimeout(() => loopVideo(segmentVideoArgs), fps)
+  }, [])
 
   const captureVideo = useCallback(async () => {
     try {
@@ -64,7 +86,7 @@ const App = () => {
     } catch (error) {
       console.log(error)
     }
-  }, [videoRef])
+  }, [videoRef, loopVideo])
 
   useEffect(() => {
     captureVideo()
@@ -76,16 +98,31 @@ const App = () => {
 
   return (
     <Container>
-      <div style={{ height: 70 }}>adasd</div>
+      <div
+        style={{
+          height: 70,
+          backgroundColor: 'rgba(0,0,0,0.05)',
+        }}
+      >
+        Dark mode switch
+      </div>
       <Content padding={PADDING}>
         <Video ref={videoRef} />
         <Filter
           ref={canvasRef}
-          width={videoDimensions.width}
-          height={videoDimensions.height}
+          // width={videoDimensions.width}
+          // height={videoDimensions.height}
+          width={600}
+          height={400}
+          images={images}
+          imageKey={selectedImageKey}
         />
       </Content>
-      <div style={{ height: 150 }}>asdasd</div>
+      <Images
+        images={images}
+        selectImageKey={selectImageKey}
+        selectedImageKey={selectedImageKey}
+      />
     </Container>
   )
 }

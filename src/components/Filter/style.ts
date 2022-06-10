@@ -1,8 +1,10 @@
 import styled from 'styled-components'
 
 export const StyledCanvas = styled.canvas`
+  position: relative;
   width: 100%;
   border-radius: 10px;
-  background-color: #000;
   aspect-ratio: 16 / 9;
+  z-index: 1000;
+  object-fit: cover;
 `

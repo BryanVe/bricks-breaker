@@ -4,14 +4,12 @@ interface SegmentVideoArgs {
   canvas: HTMLCanvasElement
   video: HTMLVideoElement
   net: BodyPix
+  selectedImageKey?: string
 }
 
 type SegmentVideo = (args: SegmentVideoArgs) => void
 
-interface LoopVideoArgs {
-  canvas: HTMLCanvasElement
-  video: HTMLVideoElement
-  net: BodyPix
+interface LoopVideoArgs extends SegmentVideoArgs {
   fps: number
 }
 

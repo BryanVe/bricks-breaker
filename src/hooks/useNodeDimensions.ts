@@ -8,9 +8,11 @@ const useNodeDimensions = <T extends HTMLElement>() => {
   })
   const getDimensions = useCallback(() => {
     if (ref.current) {
+      const { width, height } = ref.current.getBoundingClientRect()
+
       setDimensions({
-        width: ref.current.getBoundingClientRect().width,
-        height: ref.current.getBoundingClientRect().height,
+        width,
+        height,
       })
     }
   }, [])
