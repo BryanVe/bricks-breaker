@@ -1,14 +1,18 @@
 import styled from 'styled-components'
 
-export const Container = styled.div`
+interface ContainerProps {
+  backgroundColor: string
+}
+
+export const Container = styled.div<ContainerProps>`
   position: relative;
-  background-color: #1f1f1f;
+  background-color: ${(props) => props.backgroundColor};
   /* background-color: #f5f5f5; */
   width: 100vw;
   height: 100vh;
   display: grid;
-  grid-template-columns: 1fr;
-  grid-template-rows: auto 1fr auto;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: 1fr;
 `
 
 interface ContentProps {
@@ -19,10 +23,10 @@ export const Content = styled.div<ContentProps>`
   align-self: center;
   justify-self: center;
   width: ${(props) => `calc(100% - ${props.padding * 2}px)`};
-  height: 100%;
+  max-width: 2000px;
+  height: auto;
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  grid-template-rows: auto;
   align-content: center;
   gap: ${(props) => `${props.padding}px`};
 

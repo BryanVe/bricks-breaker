@@ -1,10 +1,14 @@
 import styled from 'styled-components'
 
-export const StyledCanvas = styled.canvas`
-  position: relative;
+interface StyledCanvasProps {
+  backgroundColor: string
+}
+
+export const StyledCanvas = styled.canvas<StyledCanvasProps>`
   width: 100%;
-  border-radius: 10px;
+  height: auto;
   aspect-ratio: 16 / 9;
+  border-radius: 10px;
+  background-color: ${(props) => props.backgroundColor};
   z-index: 1000;
-  object-fit: cover;
 `

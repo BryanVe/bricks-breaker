@@ -1,41 +1,28 @@
-import { useRef, useEffect, useCallback, useState } from 'react'
+import { useRef, useEffect, useCallback, useContext } from 'react'
 import { load } from '@tensorflow-models/body-pix'
 import '@tensorflow/tfjs-backend-webgl'
 
 import { Container, Content } from 'style'
-import { Video, Filter, Images } from 'components'
-import { useNodeDimensions } from 'hooks'
-import { segmentVideo, images } from 'utils'
+import { Video, Filter, Sidebar } from 'components'
+import { segmentVideo } from 'utils'
+import { ThemeContext } from 'theme'
 
 const FPS = 1000 / 30
 const PADDING = 32
 const ASPECT_RATIO = 16 / 9
 
 const App = () => {
-  const { ref: videoRef, dimensions: videoDimensions } =
-    useNodeDimensions<HTMLVideoElement>()
+  const videoRef = useRef<HTMLVideoElement | null>(null)
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
-  const selectedImageKeyRef = useRef<string>()
-  const [selectedImageKey, setSelectedImageKey] = useState<string>()
-
-  const selectImageKey = (key: string) => {
-    selectedImageKeyRef.current =
-      selectedImageKeyRef.current !== key ? key : undefined
-    setSelectedImageKey(selectedImageKey !== key ? key : undefined)
-  }
+  const { theme } = useContext(ThemeContext)
 
   const loopVideo = useCallback<LoopVideo>(async (args) => {
     const { video, fps } = args
 
     if (video.paused || video.ended) return
 
-    const segmentVideoArgs = {
-      ...args,
-      selectedImageKey: selectedImageKeyRef.current,
-    }
-
-    segmentVideo(segmentVideoArgs)
-    setTimeout(() => loopVideo(segmentVideoArgs), fps)
+    segmentVideo(args)
+    setTimeout(() => loopVideo(args), fps)
   }, [])
 
   const captureVideo = useCallback(async () => {
@@ -67,12 +54,8 @@ const App = () => {
 
       videoRef.current.addEventListener(
         'play',
-        function () {
+        () => {
           if (!canvasRef.current || !videoRef.current) return
-
-          const { width, height } = this.getBoundingClientRect()
-          canvasRef.current.width = width
-          canvasRef.current.height = height
 
           loopVideo({
             net,
@@ -97,32 +80,12 @@ const App = () => {
   }, [runBodyPix])
 
   return (
-    <Container>
-      <div
-        style={{
-          height: 70,
-          backgroundColor: 'rgba(0,0,0,0.05)',
-        }}
-      >
-        Dark mode switch
-      </div>
+    <Container backgroundColor={theme.background}>
+      <Sidebar />
       <Content padding={PADDING}>
         <Video ref={videoRef} />
-        <Filter
-          ref={canvasRef}
-          // width={videoDimensions.width}
-          // height={videoDimensions.height}
-          width={600}
-          height={400}
-          images={images}
-          imageKey={selectedImageKey}
-        />
+        <Filter ref={canvasRef} />
       </Content>
-      <Images
-        images={images}
-        selectImageKey={selectImageKey}
-        selectedImageKey={selectedImageKey}
-      />
     </Container>
   )
 }
