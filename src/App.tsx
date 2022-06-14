@@ -1,5 +1,6 @@
 import { useRef, useEffect, useCallback, useContext } from 'react'
 import { load } from '@tensorflow-models/body-pix'
+import { ready } from '@tensorflow/tfjs'
 import '@tensorflow/tfjs-backend-webgl'
 
 import { Container, Content } from 'style'
@@ -50,6 +51,7 @@ const App = () => {
     try {
       if (!videoRef.current) throw new Error('Video could not be captured')
 
+      await ready()
       const net = await load()
 
       videoRef.current.addEventListener(
