@@ -1,12 +1,9 @@
-import { forwardRef, useContext } from 'react'
+import { forwardRef } from 'react'
 
-import { ThemeContext } from 'theme'
 import { StyledCanvas } from './style'
 
-const Filter = forwardRef<HTMLCanvasElement>((_props, ref) => {
-  const { theme } = useContext(ThemeContext)
-
-  return <StyledCanvas ref={ref} backgroundColor={theme.sidebar} />
-})
+const Filter = forwardRef<HTMLCanvasElement>((_props, ref) => (
+  <StyledCanvas ref={ref} />
+))
 
 export default Filter

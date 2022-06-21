@@ -1,16 +1,14 @@
-type BodyPix = import('@tensorflow-models/body-pix').BodyPix
+type FaceDetector = import('@tensorflow-models/face-detection').FaceDetector
 
-interface SegmentVideoArgs {
-  canvas: HTMLCanvasElement
-  video: HTMLVideoElement
-  net: BodyPix
-  selectedImageKey?: string
-}
-
-type SegmentVideo = (args: SegmentVideoArgs) => void
-
-interface LoopVideoArgs extends SegmentVideoArgs {
-  fps: number
+interface LoopVideoArgs {
+  detector: FaceDetector
 }
 
 type LoopVideo = (args: LoopVideoArgs) => void
+
+interface DetectFaceArgs extends LoopVideoArgs {
+  canvas: HTMLCanvasElement
+  video: HTMLVideoElement
+}
+
+type DetectFace = (args: DetectFaceArgs) => void

@@ -35,3 +35,15 @@ export const Content = styled.div<ContentProps>`
     /* grid-template-rows: repeat(2, auto); */
   }
 `
+
+interface FaceDetectProps {
+  height: number
+}
+
+export const FaceDetect = styled.div<FaceDetectProps>`
+  position: fixed;
+  height: ${(props) => `${props.height}px`};
+  border-radius: 10px;
+  bottom: 32px;
+  right: 32px;
+`

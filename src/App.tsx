@@ -1,15 +1,19 @@
 import { useRef, useEffect, useCallback, useContext } from 'react'
-import { load } from '@tensorflow-models/body-pix'
-import { ready } from '@tensorflow/tfjs'
-import '@tensorflow/tfjs-backend-webgl'
+import {
+  createDetector,
+  SupportedModels,
+} from '@tensorflow-models/face-detection'
+import { VERSION } from '@mediapipe/face_detection'
 
-import { Container, Content } from 'style'
+import { ready } from '@tensorflow/tfjs'
+
+import { Container, Content, FaceDetect } from 'style'
 import { Video, Filter, Sidebar } from 'components'
-import { segmentVideo } from 'utils'
+import { detectFace } from 'utils'
 import { ThemeContext } from 'theme'
 
 const FPS = 1000 / 30
-const PADDING = 32
+const PADDING = 16
 const ASPECT_RATIO = 16 / 9
 
 const App = () => {
@@ -17,55 +21,66 @@ const App = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const { theme } = useContext(ThemeContext)
 
-  const loopVideo = useCallback<LoopVideo>(async (args) => {
-    const { video, fps } = args
+  const loopVideo = useCallback<LoopVideo>((args) => {
+    if (
+      !videoRef.current ||
+      !canvasRef.current ||
+      videoRef.current.paused ||
+      videoRef.current.ended
+    )
+      return
 
-    if (video.paused || video.ended) return
+    const { detector } = args
+    const { width, height } = videoRef.current.getBoundingClientRect()
 
-    segmentVideo(args)
-    setTimeout(() => loopVideo(args), fps)
+    canvasRef.current.width = width
+    canvasRef.current.height = height
+
+    detectFace({
+      detector,
+      canvas: canvasRef.current,
+      video: videoRef.current,
+    })
+    setTimeout(() => loopVideo(args), FPS)
   }, [])
 
   const captureVideo = useCallback(async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
+          frameRate: FPS,
           aspectRatio: {
-            exact: ASPECT_RATIO,
+            ideal: ASPECT_RATIO,
           },
         },
       })
 
       if (!videoRef.current) throw new Error('Video could not be captured')
-
-      const { width, height } = videoRef.current.getBoundingClientRect()
       videoRef.current.srcObject = stream
-      videoRef.current.width = width
-      videoRef.current.height = height
     } catch (error) {
       console.log(error)
     }
   }, [videoRef])
 
-  const runBodyPix = useCallback(async () => {
+  const runDetector = useCallback(async () => {
     try {
       if (!videoRef.current) throw new Error('Video could not be captured')
 
       await ready()
-      const net = await load()
+      const detector = await createDetector(
+        SupportedModels.MediaPipeFaceDetector,
+        {
+          runtime: 'mediapipe',
+          solutionPath: `https://cdn.jsdelivr.net/npm/@mediapipe/face_detection@${VERSION}`,
+        }
+      )
 
       videoRef.current.addEventListener(
         'play',
-        () => {
-          if (!canvasRef.current || !videoRef.current) return
-
+        () =>
           loopVideo({
-            net,
-            video: videoRef.current,
-            canvas: canvasRef.current,
-            fps: FPS,
-          })
-        },
+            detector,
+          }),
         false
       )
     } catch (error) {
@@ -78,16 +93,49 @@ const App = () => {
   }, [captureVideo])
 
   useEffect(() => {
-    runBodyPix()
-  }, [runBodyPix])
+    runDetector()
+  }, [runDetector])
+
+  // useEffect(() => {
+  //   if (testRef.current) {
+  //     const width = 900
+  //     const height = width / ASPECT_RATIO
+
+  //     testRef.current.width = width
+  //     testRef.current.height = height
+  //     console.log(testRef.current)
+  //     const ctx = testRef.current.getContext('2d')
+
+  //     if (ctx) {
+  //       ctx.beginPath()
+  //       ctx.fillStyle = '#000'
+  //       ctx.rect(PADDING, height - 20 - PADDING, 200, 20)
+  //       ctx.fill()
+  //     }
+  //   }
+  // }, [])
 
   return (
     <Container backgroundColor={theme.background}>
-      <Sidebar />
-      <Content padding={PADDING}>
+      <FaceDetect height={200}>
         <Video ref={videoRef} />
         <Filter ref={canvasRef} />
-      </Content>
+      </FaceDetect>
+      <Sidebar />
+      <Content padding={PADDING}>GAME</Content>
+      {/* <canvas
+        ref={testRef}
+        // width={1800}
+        // height={1800 / ASPECT_RATIO}
+        style={{
+          backgroundColor: '#f2f2f2',
+          borderRadius: 10,
+          justifySelf: 'center',
+          alignSelf: 'center',
+        }}
+      >
+        a
+      </canvas> */}
     </Container>
   )
 }

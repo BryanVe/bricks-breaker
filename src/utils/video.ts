@@ -1,20 +1,29 @@
-import { drawBokehEffect } from '@tensorflow-models/body-pix'
+const pointSize = 8
 
-export const segmentVideo: SegmentVideo = async (args) => {
-  const { net, video, canvas } = args
+export const detectFace: DetectFace = async (args) => {
+  const { detector, video, canvas } = args
 
-  const backgroundBlurAmount = 10
-  const edgeBlurAmount = 12
-  const flipHorizontal = false
+  const ctx = canvas.getContext('2d')
+  if (ctx) {
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
 
-  const segmentation = await net.segmentPerson(video, {})
+    const faces = await detector.estimateFaces(video, {
+      flipHorizontal: false,
+    })
+    if (faces.length > 0) {
+      const face = faces[0]
 
-  drawBokehEffect(
-    canvas,
-    video,
-    segmentation,
-    backgroundBlurAmount,
-    edgeBlurAmount,
-    flipHorizontal
-  )
+      face.keypoints.forEach((keypoint) => {
+        ctx.beginPath()
+        ctx.fillStyle = '#00ff2f'
+        ctx.rect(
+          keypoint.x * (canvas.width / video.videoWidth) - pointSize / 2,
+          keypoint.y * (canvas.height / video.videoHeight) - pointSize / 2,
+          pointSize,
+          pointSize
+        )
+        ctx.fill()
+      })
+    }
+  }
 }
