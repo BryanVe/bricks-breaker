@@ -1,4 +1,4 @@
-import { useRef, useEffect, useCallback, useContext } from 'react'
+import { useRef, useEffect, useCallback, useContext, useState } from 'react'
 import {
   createDetector,
   SupportedModels,
@@ -9,19 +9,65 @@ import { ready } from '@tensorflow/tfjs'
 
 import { Container, Content, FaceDetect } from 'style'
 import { Video, Filter, Sidebar } from 'components'
-import { detectFace } from 'utils'
+import { detectFace, STATES } from 'utils'
 import { ThemeContext } from 'theme'
 
 const FPS = 1000 / 30
 const PADDING = 16
 const ASPECT_RATIO = 16 / 9
+const BAR_PROPERTIES = {
+  width: 200,
+  height: 20,
+  color: '#000',
+}
 
 const App = () => {
+  const { theme } = useContext(ThemeContext)
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
-  const { theme } = useContext(ThemeContext)
+  const gameRef = useRef<HTMLCanvasElement | null>(null)
+  const startRef = useRef(false)
+  const [barPosition, setBarPosition] = useState({
+    posX: 0,
+    posY: 0,
+  })
 
-  const loopVideo = useCallback<LoopVideo>((args) => {
+  const moveRight = () =>
+    setBarPosition((barPosition) => {
+      if (!gameRef.current) return barPosition
+
+      const maxPosX = gameRef.current.width - BAR_PROPERTIES.width
+      if (barPosition.posX >= maxPosX)
+        return {
+          ...barPosition,
+          posX: maxPosX,
+        }
+      else
+        return {
+          ...barPosition,
+          posX: barPosition.posX + 10,
+        }
+    })
+
+  const moveLeft = () =>
+    setBarPosition((barPosition) => {
+      const minPosX = 0
+      if (barPosition.posX <= minPosX)
+        return {
+          ...barPosition,
+          posX: minPosX,
+        }
+      else
+        return {
+          ...barPosition,
+          posX: barPosition.posX - 10,
+        }
+    })
+
+  const clearFrame = (ctx: CanvasRenderingContext2D) =>
+    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height)
+
+  const loopVideo = useCallback<LoopVideo>(async (args) => {
     if (
       !videoRef.current ||
       !canvasRef.current ||
@@ -36,11 +82,28 @@ const App = () => {
     canvasRef.current.width = width
     canvasRef.current.height = height
 
-    detectFace({
+    const state = await detectFace({
       detector,
       canvas: canvasRef.current,
       video: videoRef.current,
     })
+
+    if (startRef.current) {
+      switch (state) {
+        case STATES.RIGHT: {
+          moveRight()
+          break
+        }
+        case STATES.LEFT: {
+          moveLeft()
+          break
+        }
+        default: {
+          break
+        }
+      }
+    }
+
     setTimeout(() => loopVideo(args), FPS)
   }, [])
 
@@ -96,24 +159,55 @@ const App = () => {
     runDetector()
   }, [runDetector])
 
-  // useEffect(() => {
-  //   if (testRef.current) {
-  //     const width = 900
-  //     const height = width / ASPECT_RATIO
+  // draw full game
+  useEffect(() => {
+    if (gameRef.current) {
+      // define board dimensions
+      const width = 900
+      const height = width / ASPECT_RATIO
 
-  //     testRef.current.width = width
-  //     testRef.current.height = height
-  //     console.log(testRef.current)
-  //     const ctx = testRef.current.getContext('2d')
+      gameRef.current.width = width
+      gameRef.current.height = height
 
-  //     if (ctx) {
-  //       ctx.beginPath()
-  //       ctx.fillStyle = '#000'
-  //       ctx.rect(PADDING, height - 20 - PADDING, 200, 20)
-  //       ctx.fill()
-  //     }
-  //   }
-  // }, [])
+      const ctx = gameRef.current.getContext('2d')
+      if (ctx) {
+        // draw bar
+        const initialBarPosition = {
+          posX: (gameRef.current.width - BAR_PROPERTIES.width) / 2,
+          posY: gameRef.current.height - BAR_PROPERTIES.height - PADDING,
+        }
+        ctx.beginPath()
+        ctx.fillStyle = BAR_PROPERTIES.color
+        ctx.rect(
+          initialBarPosition.posX,
+          initialBarPosition.posY,
+          BAR_PROPERTIES.width,
+          BAR_PROPERTIES.height
+        )
+        ctx.fill()
+        setBarPosition(initialBarPosition)
+      }
+    }
+  }, [])
+
+  useEffect(() => {
+    if (gameRef.current) {
+      const ctx = gameRef.current.getContext('2d')
+      if (ctx) {
+        clearFrame(ctx)
+
+        ctx.beginPath()
+        ctx.fillStyle = '#000'
+        ctx.rect(
+          barPosition.posX,
+          barPosition.posY,
+          BAR_PROPERTIES.width,
+          BAR_PROPERTIES.height
+        )
+        ctx.fill()
+      }
+    }
+  }, [barPosition])
 
   return (
     <Container backgroundColor={theme.background}>
@@ -121,21 +215,25 @@ const App = () => {
         <Video ref={videoRef} />
         <Filter ref={canvasRef} />
       </FaceDetect>
-      <Sidebar />
-      <Content padding={PADDING}>GAME</Content>
-      {/* <canvas
-        ref={testRef}
-        // width={1800}
-        // height={1800 / ASPECT_RATIO}
-        style={{
-          backgroundColor: '#f2f2f2',
-          borderRadius: 10,
-          justifySelf: 'center',
-          alignSelf: 'center',
+      <Content padding={PADDING}>
+        <canvas
+          ref={gameRef}
+          style={{
+            backgroundColor: '#f2f2f2',
+            borderRadius: 10,
+            justifySelf: 'center',
+            alignSelf: 'center',
+          }}
+        ></canvas>
+      </Content>
+      <Sidebar
+        startGame={() => {
+          startRef.current = true
         }}
-      >
-        a
-      </canvas> */}
+        pauseGame={() => {
+          startRef.current = false
+        }}
+      />
     </Container>
   )
 }

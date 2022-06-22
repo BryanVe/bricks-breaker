@@ -7,6 +7,8 @@ interface StyledFAIconProps {
 
 export const StyledFAIcon = styled(FontAwesomeIcon)<StyledFAIconProps>`
   font-size: 32px;
+  width: 40px;
+  height: 40px;
   padding: 10px;
   border-radius: 50%;
   cursor: pointer;

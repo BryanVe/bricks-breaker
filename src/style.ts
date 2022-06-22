@@ -11,8 +11,8 @@ export const Container = styled.div<ContainerProps>`
   width: 100vw;
   height: 100vh;
   display: grid;
-  grid-template-columns: auto 1fr;
-  grid-template-rows: 1fr;
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr auto;
 `
 
 interface ContentProps {
@@ -20,20 +20,9 @@ interface ContentProps {
 }
 
 export const Content = styled.div<ContentProps>`
+  display: grid;
   align-self: center;
   justify-self: center;
-  width: ${(props) => `calc(100% - ${props.padding * 2}px)`};
-  max-width: 2000px;
-  height: auto;
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  align-content: center;
-  gap: ${(props) => `${props.padding}px`};
-
-  @media (max-width: 800px) {
-    grid-template-columns: 1fr;
-    /* grid-template-rows: repeat(2, auto); */
-  }
 `
 
 interface FaceDetectProps {
@@ -44,6 +33,6 @@ export const FaceDetect = styled.div<FaceDetectProps>`
   position: fixed;
   height: ${(props) => `${props.height}px`};
   border-radius: 10px;
-  bottom: 32px;
+  top: 32px;
   right: 32px;
 `
