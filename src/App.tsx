@@ -8,104 +8,115 @@ import { VERSION } from '@mediapipe/face_detection'
 import { ready } from '@tensorflow/tfjs'
 
 import { Container, Content, FaceDetect } from 'style'
-import { Video, Filter, Sidebar } from 'components'
+import { Video, Filter, Controls } from 'components'
 import { detectFace, STATES } from 'utils'
 import { ThemeContext } from 'theme'
 
 const FPS = 1000 / 30
+const LIFES = 2
 const PADDING = 16
 const ASPECT_RATIO = 16 / 9
-const BAR_PROPERTIES = {
+const PADDLE_PROPERTIES = {
   width: 200,
   height: 20,
-  color: '#000',
+  color: '#636363',
 }
+
+const BALL_PROPERTIES = {
+  radius: 20,
+  color: '#e32746',
+  speedX: 8,
+  speedY: 8,
+}
+
+// class Paddle {
+//   private readonly width = 200
+//   private readonly height = 20
+//   private readonly color = '#000'
+//   private posX = 0
+//   private posY = 0
+//   private canvas: HTMLCanvasElement | undefined
+
+//   constructor(
+//     canvas: HTMLCanvasElement,
+//     initialPosX: number,
+//     initialPosY: number
+//   ) {
+//     this.canvas = canvas
+//     this.setPosition(initialPosX, initialPosY)
+//   }
+
+//   draw() {
+//     if (this.canvas) {
+//       const ctx = this.canvas.getContext('2d')
+
+//       if (ctx) {
+//         ctx.beginPath()
+//         ctx.fillStyle = this.color
+//         ctx.rect(this.posX, this.posY, this.width, this.height)
+//         ctx.fill()
+//       }
+//     }
+//   }
+
+//   setPosition(posX: number, posY: number) {
+//     this.posX = posX
+//     this.posY = posY
+//   }
+// }
 
 const App = () => {
   const { theme } = useContext(ThemeContext)
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const gameRef = useRef<HTMLCanvasElement | null>(null)
-  const startRef = useRef(false)
-  const [barPosition, setBarPosition] = useState({
+  const [start, setStart] = useState(false)
+  const [gameOver, setGameOver] = useState(false)
+  const lifes = useRef(LIFES)
+  const paddlePosition = useRef({
     posX: 0,
     posY: 0,
   })
+  const ballPosition = useRef({
+    posX: 0,
+    posY: 0,
+  })
+  const paddleMovement = useRef({
+    state: 'STILL',
+    theta: 0,
+  })
 
-  const moveRight = () =>
-    setBarPosition((barPosition) => {
-      if (!gameRef.current) return barPosition
+  const startGame = () => setStart(true)
+  const pauseGame = () => setStart(false)
+  const restartGame = () => {
+    lifes.current = LIFES
+    setGameOver(false)
+  }
 
-      const maxPosX = gameRef.current.width - BAR_PROPERTIES.width
-      if (barPosition.posX >= maxPosX)
-        return {
-          ...barPosition,
-          posX: maxPosX,
-        }
-      else
-        return {
-          ...barPosition,
-          posX: barPosition.posX + 10,
-        }
-    })
+  const loopVideo = useCallback<LoopVideo>(
+    (detector) =>
+      setInterval(async () => {
+        if (
+          !videoRef.current ||
+          !canvasRef.current ||
+          videoRef.current.paused ||
+          videoRef.current.ended
+        )
+          return
 
-  const moveLeft = () =>
-    setBarPosition((barPosition) => {
-      const minPosX = 0
-      if (barPosition.posX <= minPosX)
-        return {
-          ...barPosition,
-          posX: minPosX,
-        }
-      else
-        return {
-          ...barPosition,
-          posX: barPosition.posX - 10,
-        }
-    })
+        const { width, height } = videoRef.current.getBoundingClientRect()
 
-  const clearFrame = (ctx: CanvasRenderingContext2D) =>
-    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height)
+        canvasRef.current.width = width
+        canvasRef.current.height = height
 
-  const loopVideo = useCallback<LoopVideo>(async (args) => {
-    if (
-      !videoRef.current ||
-      !canvasRef.current ||
-      videoRef.current.paused ||
-      videoRef.current.ended
-    )
-      return
-
-    const { detector } = args
-    const { width, height } = videoRef.current.getBoundingClientRect()
-
-    canvasRef.current.width = width
-    canvasRef.current.height = height
-
-    const state = await detectFace({
-      detector,
-      canvas: canvasRef.current,
-      video: videoRef.current,
-    })
-
-    if (startRef.current) {
-      switch (state) {
-        case STATES.RIGHT: {
-          moveRight()
-          break
-        }
-        case STATES.LEFT: {
-          moveLeft()
-          break
-        }
-        default: {
-          break
-        }
-      }
-    }
-
-    setTimeout(() => loopVideo(args), FPS)
-  }, [])
+        paddleMovement.current = await detectFace({
+          detector,
+          canvas: canvasRef.current,
+          video: videoRef.current,
+        })
+      }, FPS),
+    []
+  )
 
   const captureVideo = useCallback(async () => {
     try {
@@ -123,11 +134,11 @@ const App = () => {
     } catch (error) {
       console.log(error)
     }
-  }, [videoRef])
+  }, [])
 
   const runDetector = useCallback(async () => {
     try {
-      if (!videoRef.current) throw new Error('Video could not be captured')
+      if (!videoRef.current) throw new Error('Face could not be detected')
 
       await ready()
       const detector = await createDetector(
@@ -140,10 +151,7 @@ const App = () => {
 
       videoRef.current.addEventListener(
         'play',
-        () =>
-          loopVideo({
-            detector,
-          }),
+        () => loopVideo(detector),
         false
       )
     } catch (error) {
@@ -151,15 +159,17 @@ const App = () => {
     }
   }, [videoRef, loopVideo])
 
+  // ! START CAPTURING VIDEO FROM CAMERA
   useEffect(() => {
     captureVideo()
   }, [captureVideo])
 
+  // ! RUN FACE DETECTOR FOR GETTING MOVEMENTS
   useEffect(() => {
     runDetector()
   }, [runDetector])
 
-  // draw full game
+  // ! DRAW GAME
   useEffect(() => {
     if (gameRef.current) {
       // define board dimensions
@@ -171,43 +181,216 @@ const App = () => {
 
       const ctx = gameRef.current.getContext('2d')
       if (ctx) {
-        // draw bar
-        const initialBarPosition = {
-          posX: (gameRef.current.width - BAR_PROPERTIES.width) / 2,
-          posY: gameRef.current.height - BAR_PROPERTIES.height - PADDING,
+        const initialPaddlePosition = {
+          posX: (gameRef.current.width - PADDLE_PROPERTIES.width) / 2,
+          posY: gameRef.current.height - PADDLE_PROPERTIES.height - PADDING,
         }
+        const initialBallPosition = {
+          posX: gameRef.current.width / 2,
+          posY: initialPaddlePosition.posY - BALL_PROPERTIES.radius,
+        }
+
+        // draw paddle
         ctx.beginPath()
-        ctx.fillStyle = BAR_PROPERTIES.color
+        ctx.fillStyle = PADDLE_PROPERTIES.color
         ctx.rect(
-          initialBarPosition.posX,
-          initialBarPosition.posY,
-          BAR_PROPERTIES.width,
-          BAR_PROPERTIES.height
+          initialPaddlePosition.posX,
+          initialPaddlePosition.posY,
+          PADDLE_PROPERTIES.width,
+          PADDLE_PROPERTIES.height
         )
         ctx.fill()
-        setBarPosition(initialBarPosition)
+
+        // draw ball
+        ctx.beginPath()
+        ctx.fillStyle = BALL_PROPERTIES.color
+        ctx.arc(
+          initialBallPosition.posX,
+          initialBallPosition.posY,
+          BALL_PROPERTIES.radius,
+          0,
+          2 * Math.PI
+        )
+        ctx.fill()
+
+        paddlePosition.current = initialPaddlePosition
+        ballPosition.current = initialBallPosition
       }
     }
   }, [])
 
+  // ! PLAY GAME
   useEffect(() => {
-    if (gameRef.current) {
-      const ctx = gameRef.current.getContext('2d')
-      if (ctx) {
-        clearFrame(ctx)
+    let interval: NodeJS.Timer | undefined
 
-        ctx.beginPath()
-        ctx.fillStyle = '#000'
-        ctx.rect(
-          barPosition.posX,
-          barPosition.posY,
-          BAR_PROPERTIES.width,
-          BAR_PROPERTIES.height
-        )
-        ctx.fill()
-      }
-    }
-  }, [barPosition])
+    if (start && !gameOver)
+      interval = setInterval(() => {
+        if (gameRef.current) {
+          const ctx = gameRef.current.getContext('2d')
+
+          if (ctx) {
+            // ! GET CURRENT POSITION OF ELEMENTS
+            // ! BAR POSITION
+            const { state, theta } = paddleMovement.current
+
+            const step = 40 * Math.sin(theta)
+            switch (state) {
+              case STATES.RIGHT: {
+                const maxPosX = gameRef.current.width - PADDLE_PROPERTIES.width
+                const nextPostX = paddlePosition.current.posX + step
+
+                if (nextPostX >= maxPosX)
+                  paddlePosition.current = {
+                    ...paddlePosition.current,
+                    posX: maxPosX,
+                  }
+                else
+                  paddlePosition.current = {
+                    ...paddlePosition.current,
+                    posX: nextPostX,
+                  }
+                break
+              }
+              case STATES.LEFT: {
+                const minPosX = 0
+                const nextPostX = paddlePosition.current.posX - step
+
+                if (nextPostX <= minPosX)
+                  paddlePosition.current = {
+                    ...paddlePosition.current,
+                    posX: minPosX,
+                  }
+                else
+                  paddlePosition.current = {
+                    ...paddlePosition.current,
+                    posX: nextPostX,
+                  }
+                break
+              }
+              default:
+                break
+            }
+
+            // ! BALL POSITION
+            ballPosition.current = {
+              ...ballPosition.current,
+              posX: ballPosition.current.posX - BALL_PROPERTIES.speedX,
+              posY: ballPosition.current.posY - BALL_PROPERTIES.speedY,
+            }
+
+            const gameTop = 0
+            const gameBottom = gameRef.current.height
+            const gameLeft = 0
+            const gameRight = gameRef.current.width
+
+            const paddleTop = paddlePosition.current.posY
+            // const paddleBottom = paddleTop + PADDLE_PROPERTIES.height
+            const paddleLeft = paddlePosition.current.posX
+            const paddleRight = paddleLeft + PADDLE_PROPERTIES.width
+
+            const ballTop = ballPosition.current.posY - BALL_PROPERTIES.radius
+            const ballBottom =
+              ballPosition.current.posY + BALL_PROPERTIES.radius
+            const ballLeft = ballPosition.current.posX - BALL_PROPERTIES.radius
+            const ballRight = ballPosition.current.posX + BALL_PROPERTIES.radius
+            if (ballBottom > gameBottom - PADDING) {
+              lifes.current--
+
+              //  else {
+              const initialPaddlePosition = {
+                posX: (gameRef.current.width - PADDLE_PROPERTIES.width) / 2,
+                posY:
+                  gameRef.current.height - PADDLE_PROPERTIES.height - PADDING,
+              }
+              const initialBallPosition = {
+                posX: gameRef.current.width / 2,
+                posY: initialPaddlePosition.posY - BALL_PROPERTIES.radius,
+              }
+
+              paddlePosition.current = initialPaddlePosition
+              ballPosition.current = initialBallPosition
+              // }
+            }
+            if (ballTop < gameTop) {
+              BALL_PROPERTIES.speedY = -BALL_PROPERTIES.speedY
+            }
+            // ballx
+            if (ballLeft < gameLeft) {
+              BALL_PROPERTIES.speedX = -BALL_PROPERTIES.speedX
+            } else if (ballRight > gameRight) {
+              BALL_PROPERTIES.speedX = -BALL_PROPERTIES.speedX
+            }
+
+            if (
+              ballBottom > paddleTop &&
+              ballRight > paddleLeft &&
+              ballLeft < paddleRight
+              // ballTop < paddleBottom
+            ) {
+              BALL_PROPERTIES.speedY = -BALL_PROPERTIES.speedY
+
+              const paddleCenter = (paddleLeft + paddleRight) / 2
+              const ballDistFromCenterX =
+                ballPosition.current.posX - paddleCenter
+              BALL_PROPERTIES.speedX = ballDistFromCenterX * 0.15
+            }
+
+            // ! DRAW ELEMENTS
+            // ! CLEAR LAST FRAME
+            ctx.clearRect(0, 0, gameRef.current.width, gameRef.current.height)
+
+            if (lifes.current === 0) {
+              const fontSize = 62
+              const text = 'Game Over'
+              ctx.font = `${fontSize}px Arial`
+              ctx.fillStyle = '#000'
+              ctx.textAlign = 'center'
+              ctx.fillText(
+                text,
+                gameRef.current.width / 2,
+                gameRef.current.height / 2
+              )
+
+              setGameOver(true)
+            }
+
+            const fontSize = 32
+            const text = `Lifes: ${lifes.current}`
+            ctx.font = `${fontSize}px Arial`
+            ctx.fillStyle = '#000'
+            ctx.textAlign = 'center'
+            const { width } = ctx.measureText(text)
+            ctx.fillText(text, width / 2 + PADDING, fontSize + PADDING)
+
+            // ! START NEW FRAME
+            // ! DRAW BAR
+            ctx.beginPath()
+            ctx.fillStyle = PADDLE_PROPERTIES.color
+            ctx.rect(
+              paddlePosition.current.posX,
+              paddlePosition.current.posY,
+              PADDLE_PROPERTIES.width,
+              PADDLE_PROPERTIES.height
+            )
+            ctx.fill()
+
+            // ! DRAW BALL
+            ctx.beginPath()
+            ctx.fillStyle = BALL_PROPERTIES.color
+            ctx.arc(
+              ballPosition.current.posX,
+              ballPosition.current.posY,
+              BALL_PROPERTIES.radius,
+              0,
+              2 * Math.PI
+            )
+            ctx.fill()
+          }
+        }
+      }, FPS)
+
+    return () => clearInterval(interval)
+  }, [start, gameOver])
 
   return (
     <Container backgroundColor={theme.background}>
@@ -219,20 +402,20 @@ const App = () => {
         <canvas
           ref={gameRef}
           style={{
-            backgroundColor: '#f2f2f2',
+            backgroundColor: '#bbbbbb',
             borderRadius: 10,
             justifySelf: 'center',
             alignSelf: 'center',
+            outline: `6px solid ${theme.outline}`,
           }}
-        ></canvas>
+        />
       </Content>
-      <Sidebar
-        startGame={() => {
-          startRef.current = true
-        }}
-        pauseGame={() => {
-          startRef.current = false
-        }}
+      <Controls
+        start={start}
+        gameOver={gameOver}
+        startGame={startGame}
+        pauseGame={pauseGame}
+        restartGame={restartGame}
       />
     </Container>
   )

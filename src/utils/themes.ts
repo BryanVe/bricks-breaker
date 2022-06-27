@@ -11,6 +11,7 @@ export const themes: Themes = {
     },
     background: '#09141b',
     sidebar: '#0A161F',
+    outline: '#FBFEFB',
   },
   LIGHT: {
     icon: {
@@ -22,5 +23,6 @@ export const themes: Themes = {
     },
     background: '#F3F5F7',
     sidebar: '#FBFEFB',
+    outline: '#0A161F',
   },
 }

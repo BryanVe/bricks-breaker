@@ -12,6 +12,7 @@ interface ThemeValue {
   }
   background: string
   sidebar: string
+  outline: string
 }
 
 type Themes = {

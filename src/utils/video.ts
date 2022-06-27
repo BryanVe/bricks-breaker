@@ -1,4 +1,5 @@
-const pointSize = 8
+const pointSize = 6
+const defaultTheta = 6
 export const STATES = {
   CANVAS_ERROR: 'CANVAS_ERROR',
   NO_FACES_ERROR: 'NO_FACES_ERROR',
@@ -12,13 +13,25 @@ export const detectFace: DetectFace = async (args) => {
   const { detector, video, canvas } = args
 
   const ctx = canvas.getContext('2d')
-  if (!ctx) return STATES.CANVAS_ERROR
+  if (!ctx)
+    return {
+      state: STATES.CANVAS_ERROR,
+      theta: defaultTheta,
+    }
 
   ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
   const faces = await detector.estimateFaces(video)
 
-  if (faces.length === 0) return STATES.NO_FACES_ERROR
-  if (faces.length > 1) return STATES.MORE_FACES_ERROR
+  if (faces.length === 0)
+    return {
+      state: STATES.NO_FACES_ERROR,
+      theta: defaultTheta,
+    }
+  if (faces.length > 1)
+    return {
+      state: STATES.MORE_FACES_ERROR,
+      theta: defaultTheta,
+    }
 
   const resizeXFactor = canvas.width / video.videoWidth
   const resizeYFactor = canvas.width / video.videoWidth
@@ -71,9 +84,16 @@ export const detectFace: DetectFace = async (args) => {
   const theta = Math.acos(dot / (norm1 * norm2))
   const degTheta = ((theta * 180) / Math.PI) * (vect2[1] > vect1[1] ? 1 : -1)
 
-  const threshold = 10
+  const threshold = 5
 
-  if (Math.abs(degTheta) < threshold) return STATES.STILL
+  if (Math.abs(degTheta) < threshold)
+    return {
+      state: STATES.STILL,
+      theta,
+    }
 
-  return Math.abs(degTheta) === degTheta ? STATES.LEFT : STATES.RIGHT
+  return {
+    state: Math.abs(degTheta) === degTheta ? STATES.LEFT : STATES.RIGHT,
+    theta,
+  }
 }

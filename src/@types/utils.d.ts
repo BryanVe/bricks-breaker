@@ -1,14 +1,16 @@
 type FaceDetector = import('@tensorflow-models/face-detection').FaceDetector
 
-interface LoopVideoArgs {
+type LoopVideo = (detector: FaceDetector) => void
+
+interface DetectFaceArgs {
   detector: FaceDetector
-}
-
-type LoopVideo = (args: LoopVideoArgs) => Promise<void>
-
-interface DetectFaceArgs extends LoopVideoArgs {
   canvas: HTMLCanvasElement
   video: HTMLVideoElement
 }
 
-type DetectFace = (args: DetectFaceArgs) => Promise<string>
+interface DetectFaceReturn {
+  state: string
+  theta: number
+}
+
+type DetectFace = (args: DetectFaceArgs) => Promise<DetectFaceReturn>
