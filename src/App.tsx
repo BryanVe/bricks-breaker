@@ -12,7 +12,7 @@ import { detectFace, Game } from 'utils'
 import { ThemeContext } from 'theme'
 
 const FPS = 45
-const LIFES = 2
+const LIFES = 3
 const PADDING = 16
 const ASPECT_RATIO = 16 / 9
 
@@ -137,7 +137,7 @@ const App = () => {
 
   return (
     <Container backgroundColor={theme.background}>
-      <FaceDetect height={200}>
+      <FaceDetect height={150}>
         <Video ref={videoRef} />
         <Filter ref={canvasRef} />
       </FaceDetect>

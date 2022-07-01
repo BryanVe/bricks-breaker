@@ -51,8 +51,8 @@ export class Brick {
 }
 
 export class Paddle {
-  private width = 200
-  private height = 16
+  private width = 180
+  private height = 20
   private color = '#636363'
   private state = 'STILL'
   private theta = 0
@@ -95,8 +95,8 @@ export class Paddle {
 export class Ball {
   private radius = 16
   private color = '#e32746'
-  private speedX = 6
-  private speedY = 6
+  private speedX = 8
+  private speedY = 8
   private x: number
   private y: number
 
@@ -149,7 +149,7 @@ export class Game {
     this.ball = new Ball()
     this.lifes = lifes
     this.score = 0
-    this.bricks = this.createBricks(3, 3)
+    this.bricks = this.createBricks(4, 5)
   }
 
   setCanvas(canvas: HTMLCanvasElement | null) {
@@ -379,12 +379,13 @@ export class Game {
 
       this.ball.setSpeedX(Math.round(ballFromCenterX * 0.1))
       this.ball.setSpeedY(-ballSpeedY)
+      this.ball.setPosition(newPosition.x, paddleTop - ballRadius)
     } else if (ballBottom > gameBottom) {
       this.lifes--
       this.setInitialPositions()
     } else if (ballTop < gameTop) this.ball.setSpeedY(-ballSpeedY)
-    else if (ballLeft < gameLeft) this.ball.setSpeedX(-ballSpeedX)
-    else if (ballRight > gameRight) this.ball.setSpeedX(-ballSpeedX)
+    else if (ballLeft < gameLeft || ballRight > gameRight)
+      this.ball.setSpeedX(-ballSpeedX)
   }
 
   private showLifes() {
